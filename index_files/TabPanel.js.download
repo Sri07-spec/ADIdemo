@@ -1,0 +1,96 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager", 'loglevel'], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager"), require('loglevel')) :
+    console && console.error('TabPanel does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager, log) {
+
+    function TabPanel(scope, stateChangeMessages, onShowMessagesPerformer, onHideMessagePerformer) {
+        ///<summary>Initialize a new instance of TabPanel. Subscribe to messages which are passed to current instance.</summary>
+
+        var self = this;
+        Object.defineProperty(this, "scope", { enumerable: true, value: scope });
+        Object.defineProperty(this, "$scope", { enumerable: true, value: $(scope) });
+
+        //#region state change message transmitter registration
+        if (stateChangeMessages.length) {
+            $("a[href='#" + this.$scope.attr("id") + "']").on("shown.bs.tab hidden.bs.tab", function () {
+                stateChangeMessages.forEach(function (eventName) {
+                    log.debug("TabPanel raises message: \'%s\'", eventName);
+
+                    eventManager.trigger(eventName, self);
+                });
+
+                return!1;
+            });
+        }
+        //#endregion
+
+        //#region show messages performer
+        if (onShowMessagesPerformer.length) {
+            onShowMessagesPerformer.forEach(function(messageName) {
+                eventManager.subscribe(messageName, self.show, self);
+            });
+        }
+        //#endregion
+
+        //#region hide mesage performer
+        if (onHideMessagePerformer.length) {
+            onHideMessagePerformer.forEach(function (messageName) {
+                eventManager.subscribe(messageName, self.hide, self);
+            });
+        }
+        //#endregion
+
+        $("a[href='#" + this.$scope.attr("id") + "']")
+            .on('show.bs.tab', this._onShowHandler.bind(this))
+            .on('hide.bs.tab', this._onHideHandler.bind(this));
+
+    }
+
+    TabPanel.prototype._onShowHandler = function (e) {
+        $(this).trigger('focus', [this, e]);
+    }
+
+    TabPanel.prototype._onHideHandler = function (e) {
+        $(this).trigger('blur', [this, e]);
+    }
+
+    /**
+     * Make current tab active
+     * @returns {} 
+     */
+    TabPanel.prototype.show = function () {
+        $("a[href='#" + this.$scope.attr("id") + "']").tab("show");
+    }
+
+    /**
+     * Activate the first sibling tab in current tabset. To hide current selected tab
+     * @returns {} 
+     */
+    TabPanel.prototype.hide = function () {
+        var siblingTabs = $("a[href='#" + this.$scope.attr("id") + "']")
+                            .closest(".nav.nav-tabs")
+                            .find("a[data-toggle=tab][href!='#" + this.$scope.attr("id") + "']");
+
+        if (siblingTabs.length) {
+            siblingTabs[0].tab("show");
+        } else {
+            log.debug("There is no sibling tabs which we can activate to hide current tab.");
+        }
+
+    }
+
+    TabPanel.init = function init(args) {
+
+        if (args.IsEditorEditing) return null;
+
+        var tabPanel = new TabPanel(args.scope,
+            args.StateChangeMessagesTransmitting || [],
+            args.ShowActionMessages || [],
+            args.HideActionMessages || []);
+
+        return tabPanel;
+    };
+
+    return TabPanel;
+}));

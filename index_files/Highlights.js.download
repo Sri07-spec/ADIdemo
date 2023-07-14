@@ -1,0 +1,21 @@
+define(['jquery'], function ($) {
+    'use strict';
+    var highlights = {
+        init: function () {
+            if ( $('.adi-article-list-item').length ) {
+                highlights.articleList();
+            }
+        },
+        articleList: function () {
+            $('.adi-article-list-item .heading-wrapper').each(function (item, elem) {
+                var move = $(elem).closest('.adi-article-list-item');
+                $(elem).appendTo(move);
+            });
+        }
+    };
+
+
+    if ( typeof Sitecore != typeof void 0 && typeof Sitecore.PageModes != typeof void 0 && Sitecore.PageModes != null && Sitecore.PageModes.PageEditor != null ) return;
+    setTimeout(highlights.init(), 0);
+
+});

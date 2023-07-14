@@ -1,0 +1,21 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery")) :
+    console && console.error('EventManager does not support non-amd script loading.');
+}(this/* window */, function ($) {
+
+    function ModulesLoadedEvent(hasErrors, successfulModules, failedModules, scope) {
+        if (typeof hasErrors !== "boolean" || !Array.isArray(successfulModules) || !Array.isArray(failedModules))
+            throw new Error("Cannot initialize ModulesLoadedEvent - invalid arguments");
+
+        Object.defineProperties(this, {
+            scope:             { value: scope              },
+            hasErrors:         { value: hasErrors          },
+            failedModules:     { value: failedModules      },
+            successfulModules: { value: successfulModules  }
+        });
+    };
+
+    ModulesLoadedEvent.name = "ModulesLoadedEvent";
+    return ModulesLoadedEvent;
+}));

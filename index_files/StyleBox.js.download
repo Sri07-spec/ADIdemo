@@ -1,0 +1,67 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager")) :
+    console && console.error('StyleBox does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager) {
+
+    function StyleBox(scope, stateChangeMessages, onShowMessagesPerformer, onHideMessagePerformer) {
+        ///<summary>Initialize a new instance of StyleBox. Subscribe to messages which are passed to current instance.</summary>
+
+        var self = this;
+        Object.defineProperty(this, "$scope", { enumerable: true, value: $(scope) });
+        Object.defineProperty(this, "stateChangeMessages", { enumerable: true, value: stateChangeMessages.slice() });
+
+        //#region show messages performer
+        if (onShowMessagesPerformer.length) {
+            onShowMessagesPerformer.forEach(function (messageName) {
+                eventManager.subscribe(messageName, self.show, self);
+            });
+
+        }
+        //#endregion
+
+
+        //#region hide mesage performer
+        if (onHideMessagePerformer.length) {
+            onHideMessagePerformer.forEach(function (messageName) {
+                eventManager.subscribe(messageName, self.hide, self);
+            });
+        }
+        //#endregion
+    }
+
+    StyleBox.prototype.show = function () {
+        ///<summary>Make StyleBox visible with jQuery.show() method.</summary>
+        this.$scope.show();
+
+        var self = this;
+        if (this.stateChangeMessages.length) {
+            this.stateChangeMessages.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    };
+
+    StyleBox.prototype.hide = function () {
+        ///<summary>Make StyleBox hidden with jQuery.hide() method.</summary>
+        this.$scope.hide();
+
+        var self = this;
+        if (this.stateChangeMessages.length) {
+            this.stateChangeMessages.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    };
+
+    StyleBox.init = function init(args) {
+        return args.IsEditorEditing === true
+            ? null
+            : new StyleBox(args.scope,
+                        args.StateChangeMessagesTransmitting || [],
+                        args.ShowActionMessages || [],
+                        args.HideActionMessages || []);
+    };
+
+    return StyleBox;
+}));

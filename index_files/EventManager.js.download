@@ -1,0 +1,158 @@
+/**
+ * @license BrainJocks CCF EventManager
+ * https://brainjocks.atlassian.net/wiki/display/SDD/eventManager
+ * Copyright 2020
+ */
+
+;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "underscore", 'loglevel'], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("underscore"), require('loglevel')) :
+    console && console.error('EventManager does not support non-amd script loading.');
+}(this/* window */, function($, _, log) {
+    "use strict";
+
+    function logRegistration(event, func) {
+        log.debug("REGISTER event " + String(event) + " to callback function " + (func.name || "[Anonymous]"));
+    }
+
+    function logUnsubscription(event, func) {
+        log.debug("UNSUBSCRIBE function " + String(event) + " from event " + (func.name || "[Anonymous]"));
+    }
+
+    function logHandledTrigger(subscriber, event) {
+        log.debug("TRIGGER function " + (subscriber.callback.name || "[Anonymous]") + " for event " + String(subscriber.event));
+        log.debug(JSON.stringify(event, null, 4));
+    }
+
+    function logMissedTrigger(event) {
+        log.debug("SKIP event with 0 subscriptions: " + String(event));
+    }
+
+    function Registration(event, callback, thisp) {
+        Object.defineProperties(this, {
+            id:       { value: (new Date()).valueOf() },
+            event:    { value: event                          },
+            callback: { value: callback                       },
+            thisp:    { value: thisp                          }
+        });
+    }
+
+    function EventManager() {
+        var subscribers = [], loadingDeferred = $.Deferred(), verbose = true;
+
+        Object.defineProperties(this, {
+            verbose: {
+                get: function () {
+                    return verbose;
+                },
+                set: function (value) {
+                    verbose = Boolean(value);
+                }
+            }
+        });
+
+        this.pauseTriggers = function () {
+            loadingDeferred.resolve();
+            loadingDeferred = $.Deferred();
+            return this;
+        };
+
+        this.registrationComplete = function () {
+            loadingDeferred.resolve();
+            return this;
+        };
+
+        function executeCallbacks(isAsync, args) {
+            var event = args.splice(0, 1)[0], counter = 0;
+
+            subscribers.forEach(function (subscriber) {
+                var operation;
+                if (event === subscriber.event) {
+                    counter++;
+                    logHandledTrigger(subscriber, event);
+                    if (args.length <= 1) {
+                        if (subscriber.thisp === undefined) {
+                            operation = function () {
+                                subscriber.callback(args[0]);
+                            };
+                        } else {
+                            operation = function () {
+                                subscriber.callback.call(subscriber.thisp, args[0]);
+                            };
+                        }
+                    } else {
+                        operation = function () {
+                            subscriber.callback.apply(subscriber.thisp || null, args);
+                        };
+                    }
+
+                    if (isAsync) {
+                        window.setTimeout(operation, 0);
+                    } else {
+                        operation();
+                    }
+                }
+            });
+
+            if (verbose && counter === 0) {
+                logMissedTrigger(event);
+            }
+        }
+
+        this.trigger = function trigger(event) {
+            if (!event) {
+                log.error("Argument 'event' is required for method EventManager.trigger");
+                return;
+            }
+
+            // Hold off triggering events until the page is fully loaded and all listeners have been registered
+            loadingDeferred.promise().done(executeCallbacks.bind(null, false, $.makeArray(arguments)));
+        };
+
+        this.triggerAsync = function triggerAsync(event) {
+            if (!event) {
+                log.error("Argument 'event' is required for method EventManager.trigger");
+                return;
+            }
+
+            // Hold off triggering events until the page is fully loaded and all listeners have been registered
+            loadingDeferred.promise().done(executeCallbacks.bind(null, true, $.makeArray(arguments)));
+        };
+
+        this.subscribe = function subscribe(event, callback, thisp) {
+            var registration;
+
+            if (!event || typeof callback !== "function") {
+                log.debug(
+                    "Skipping event registration. EventManager can only accept " +
+                        "registrations that specify an event and a callback function."
+                );
+
+                return null;
+            }
+
+            if (this.verbose) {
+                logRegistration(event, callback);
+            }
+
+            registration = new Registration(event, callback, thisp);
+            subscribers.push(registration);
+            return registration.id;
+        };
+
+        this.unsubscribe = function unsubscribe(registrationId) {
+            var i = _.findIndex(subscribers, function (i) {
+                return i.id === registrationId;
+            });
+
+            if (i === -1) return;
+            if (this.verbose) {
+                logUnsubscription(subscribers[i].event, subscribers[i].callback);
+            }
+
+            subscribers.splice(i, 1);
+        };
+    }
+
+    return new EventManager(); // Singleton
+}));

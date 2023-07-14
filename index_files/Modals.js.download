@@ -1,0 +1,31 @@
+define(['jquery', 'tabCollapse'], function ($, tabCollapse) {
+    'use strict';
+
+    var modals = {
+        init: function () {
+            if ( $('.modal').length ) {
+                modals.tabCollapse();
+            }
+        },
+        tabCollapse: function () {
+            // County selection collapse
+            $('.modal').on('shown-accordion.bs.tabcollapse', function () {
+                $('.panel-collapse').removeClass('in');
+                $('.js-tabcollapse-panel-heading').attr('aria-expanded', 'false');
+            });
+            $('.modal').on('show.bs.modal', function () {
+                $('.tab-pane').removeClass('active in');
+                $('.nav.nav-tabs li').removeClass('active');
+            });
+            $('.modal').on('shown.bs.modal', function () {
+                $('header .nav.nav-tabs').tabCollapse({
+                    tabsClass: 'hidden-sm hidden-xs',
+                    accordionClass: 'visible-sm visible-xs'
+                });
+            });
+        }
+    };
+
+    if ( typeof Sitecore != typeof void 0 && typeof Sitecore.PageModes != typeof void 0 && Sitecore.PageModes != null && Sitecore.PageModes.PageEditor != null ) return;
+    setTimeout(modals.init(), 0);
+});

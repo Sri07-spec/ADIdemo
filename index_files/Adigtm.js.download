@@ -1,0 +1,113 @@
+﻿define(["jquery", 'eventManager'], function ($, eventManager) {
+    $(document).ready(function () {
+
+        var isOtherRegion = false;
+        var locationCookie = getTrustarcBehaviorCookie();
+        window.addEventListener("message", handleMessage, false);
+        var rowNoticeBehavior = $("head #rde-row-notice-behaviour");
+
+        if (locationCookie && rowNoticeBehavior && rowNoticeBehavior.length === 1) {
+            var rowNoticeBehaviorValue = rowNoticeBehavior.first().attr("content");
+            if (rowNoticeBehaviorValue) {
+                var locationCookieSplit = locationCookie.split(/[\s,|]+/);
+                var rowNoticeBehaviorSplit = rowNoticeBehaviorValue.split(/[\s,|]+/);
+
+                if (locationCookieSplit.length === 2 &&
+                    rowNoticeBehaviorSplit.length === 2 &&
+                    locationCookieSplit[0] === rowNoticeBehaviorSplit[0] &&
+                    locationCookieSplit[1] === rowNoticeBehaviorSplit[1]) {
+                    isOtherRegion = true;
+                }
+            }
+        }
+
+        function getTrustarcBehaviorCookie() {
+            var result = "";
+            var rx = new RegExp("\\s*notice_behavior\\s*=\\s*([^;]*)").exec(document.cookie);
+            if (rx && rx.length > 1) {
+                result = rx[1];
+            }
+        }
+        if (!isOtherRegion) {
+            //Check for TrustArc Cookie Exists or if TrustArc Banner not in page
+            if (document.cookie.match(/\bnotice_gdpr_prefs=[^:]*1[^:]*:/) || ($(".trust-arc-banner-container").length <= 0)) {
+                //alert('if');
+                loadGTM();
+                // return false;
+            }
+
+            //Check for TrustArc Cookie not exists to attach Event Handler
+            if (!document.cookie.match(/\bnotice_gdpr_prefs=/) && ($(".trust-arc-banner-container").length > 0)) {
+                //alert('else');
+                //This method will add a Handler that will be fired on Post Message event
+                setupCCMEvent();
+                // return false;
+            }
+        }
+        else {
+            //alert('else 2');
+            loadGTM();
+        }
+
+
+
+        function loadGTM() {
+            console.log("Loading GTM...");
+
+            window.dataLayer = window.dataLayer || [];
+            (function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+            })(window, document, 'script', 'dataLayer', 'GTM-MKTDG93');
+        }
+
+
+        function setupCCMEvent() {
+
+            // handleMessage() is our Event handler method to fire GTM on User Acceptance
+            window.addEventListener("message", handleMessage, false);
+        }
+
+        function handleMessage(e) {
+
+            if (e.data == "") {
+                return;
+            }
+
+            var data = JSON.parse(e.data);
+
+            //Check if Post Event message is submit_preferences
+            if (data.message == "submit_preferences") {
+                console.log("Banner Event - submit_preferences");
+
+                // Check if TrustArc cookie has Functional Cookies prefs value
+                if (document.cookie.match(/\bnotice_gdpr_prefs=[^:]*1[^:]*:/)) {
+                    console.log("TrustArc Banner Accepted");
+                    loadGTM();
+                }
+                else {
+                    console.log("TrustArc Banner Rejected");
+                    //unLoadGTM();
+                }
+            }
+        }
+        function unLoadGTM() {
+            console.log("UnLoading GTM...");
+            window.dataLayer = [];
+        }
+
+        function isPageEditor() {
+            if (typeof Sitecore == "undefined") {
+                return false;
+            }
+            if (typeof Sitecore.PageModes == "undefined" || Sitecore.PageModes == null) {
+                return false;
+            }
+            return Sitecore.PageModes.PageEditor != null;
+        }
+    });
+});

@@ -1,0 +1,36 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager", 'loglevel'], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager"), require('loglevel')) :
+    console && console.error('MenuListItem does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager, log) {
+
+    function MenuListItem(scope, clickMessagesTransmitting) {
+        var self = this;
+        Object.defineProperty(this, "$scope", { enumerable: true, value: $(scope) });
+
+
+        //#region click messages transmitting registration
+        if (clickMessagesTransmitting.length) {
+            this.$scope.on("click", "a", function (e) {
+                e.preventDefault();
+
+                clickMessagesTransmitting.forEach(function (eventName) {
+                    log.debug("MenuListItem raises message: \'%s\'", eventName);
+
+                    eventManager.trigger(eventName, self);
+                });
+
+                return !1;
+            });
+        }
+        //#endregion
+    }
+
+    MenuListItem.init = function init(args) {
+        return args.IsEditorEditing === true
+            ? null
+            : new MenuListItem(args.scope, args.ClickMessagesTransmitting || []);
+    };
+
+    return MenuListItem;
+}));

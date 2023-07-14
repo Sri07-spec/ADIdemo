@@ -1,0 +1,128 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports", "score_ccf/Xperience/Enums/XPEnums", "promise-polyfill"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var XPEnums_1 = require("score_ccf/Xperience/Enums/XPEnums");
+    require("promise-polyfill"); // polyfill
+    /**
+     * Encapsulates junction logic of two and more conditions
+     */
+    var XPConditionJunction = /** @class */ (function () {
+        function XPConditionJunction(operand, conditions) {
+            this.operand = operand;
+            this._innerConditions = conditions;
+            this._operand = operand;
+            this.defer = this._initDeferredCondition();
+        }
+        XPConditionJunction.prototype._initDeferredCondition = function () {
+            var _this = this;
+            return new Promise(function (resolve, reject) {
+                Promise.all(_this._innerConditions).then(function (conditions) {
+                    // nested conditions
+                    var innerPromises = [];
+                    for (var x = 0; x < conditions.length; x++) {
+                        var cond = conditions[x];
+                        // collect nested condition defer objects, to build current juction behaviour 
+                        innerPromises = innerPromises.concat(cond.defer);
+                    }
+                    if (_this._operand === XPEnums_1.XPJunction.AND) {
+                        // wait until all nested conditions will be executed and join them when AND operation
+                        Promise.all(innerPromises).then(function (results) {
+                            // because modern hipsters cannot understand bitwise operation it is written in that style
+                            resolve(results.every(function (v) { return v === !0; }));
+                        });
+                    }
+                    if (_this._operand === XPEnums_1.XPJunction.OR) {
+                        var count_1 = innerPromises.length;
+                        for (var x = 0; x < innerPromises.length; x++) {
+                            innerPromises[x].then(function (value) {
+                                // if at least one condition was resolved with true - current Promise will be resolved with true,
+                                // if none of conditions was resolved with true, current Promise will be resolved with false
+                                if (!--count_1 || value === !0) {
+                                    resolve(!!value || !!count_1);
+                                }
+                            }, function (reason) {
+                                reject(reason);
+                            });
+                        }
+                        ;
+                    }
+                }, function (reason) {
+                    reject(reason);
+                });
+            });
+        };
+        /**
+         * Setup conditions to a scope of the component
+         * @param component An instance of a UXModule component to scope conditions of the current junction
+         */
+        XPConditionJunction.prototype.setup = function (component) {
+            for (var index = 0; index < this._innerConditions.length; index++) {
+                var conditionModuleLoader = this._innerConditions[index];
+                // setup condition as soon as it is loaded
+                conditionModuleLoader.then(function (condModule) {
+                    condModule.setup(component);
+                });
+            }
+        };
+        XPConditionJunction.prototype.false = function () {
+            throw new Error('You cannot resolve Junction condition, only inner conditions can resolve the Junction condition.');
+        };
+        XPConditionJunction.prototype.true = function () {
+            throw new Error('You cannot resolve Junction condition, only inner conditions can resolve the Junction condition.');
+        };
+        /**
+         * Proxy reset call to all nested conditions and product a new defer object for current junction
+         */
+        XPConditionJunction.prototype.reset = function () {
+            Promise.all(this._innerConditions).then(function (conditions) {
+                for (var x = 0; x < conditions.length; x++) {
+                    conditions[x].reset();
+                }
+            });
+            this.defer = this._initDeferredCondition();
+        };
+        return XPConditionJunction;
+    }());
+    exports.XPConditionJunction = XPConditionJunction;
+    /**
+     * Encapsulates AND Junction logic of two and more conditions
+     */
+    var XPConditionAnd = /** @class */ (function (_super) {
+        __extends(XPConditionAnd, _super);
+        function XPConditionAnd(conditions) {
+            return _super.call(this, XPEnums_1.XPJunction.AND, conditions) || this;
+        }
+        return XPConditionAnd;
+    }(XPConditionJunction));
+    exports.XPConditionAnd = XPConditionAnd;
+    /**
+     * Encapsulates OR Junction logic of two and more conditions
+     */
+    var XPConditionOr = /** @class */ (function (_super) {
+        __extends(XPConditionOr, _super);
+        function XPConditionOr(conditions) {
+            return _super.call(this, XPEnums_1.XPJunction.AND, conditions) || this;
+        }
+        return XPConditionOr;
+    }(XPConditionJunction));
+    exports.XPConditionOr = XPConditionOr;
+});
+//# sourceMappingURL=XPConditionJunction.js.map

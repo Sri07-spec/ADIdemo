@@ -1,0 +1,101 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager", 'loglevel', "cssEscape"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager"), require('loglevel'), require("cssEscape")) :
+    console && console.error('TabSet does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager, log) {
+    
+    function TabSet(scope, stateChangeMessages) {
+        var self = this;
+        Object.defineProperty(this, "$scope", { enumerable: true, value: $(scope) });
+        
+        //#region message transmitter registration
+        if (stateChangeMessages.length) {
+            this.$scope.on("shown.bs.tab", function () {
+
+                stateChangeMessages.forEach(function (eventName) {
+                    log.debug("TabSet raises message: \'%s\'", eventName);
+
+                    eventManager.trigger(eventName, self);
+                });
+
+                return false;
+            });
+        }
+        //#endregion
+
+        this._setupDeepLinking();
+
+        var resizeTimer;
+        $(window).resize(function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                self.$scope.find('.tab-pane').each(function (index, element) {
+                    if ($(element).is('.active:hidden')) {
+                        BrainJocks.BootstrapUI.TabSet.activate();
+                    }
+                });
+            }, 50);
+        });
+
+    }
+
+    TabSet.prototype._setupDeepLinking = function () {
+        var that = this;
+        // make tabs with anchors change the URL to make them sticky
+        this.$scope.on('shown.bs.tab',
+            'a[data-toggle="tab"][href*="#tab-"]',
+            function () {
+
+                var anchor = '';
+                var oldHash = window.location.hash.substring(1);
+                
+                if ($(this).is('a[data-toggle="tab"][href*="#tab-"][data-anchorable="true"]')) {
+                    anchor = $(this).attr("href").replace("#tab-", "");
+                }
+
+                if (anchor) {
+                    window.history && window.history.pushState && window.history.pushState(null, null, '#' + anchor);
+                    window.location.hash = anchor;
+                    // Manually trigger event "hashchange" as it's not triggered automatically when clicking on tab
+                    $(window).trigger("hashchange", anchor);
+                } else {
+                    // if we open a tab without deep linking, we should release previously selected anchorable tab.
+                    if (oldHash && $(this).closest('.nav-tabs').find('a[data-toggle="tab"][href*="#' + CSS.escape('tab-' + oldHash) + '"][data-anchorable="true"]').length) {
+                        // clear hash without page jump in modern browsers
+                        window.history && window.history.pushState && window.history.pushState(null, null, '#');
+                        window.location.hash = '';
+                    }
+                    // otherwise we don't care.
+                }
+
+            });
+
+        // make all tabs with anchors to be visible when we walk along the browser history
+        $(window).on("hashchange", function () {
+            if (!window.location.hash) return !1;
+
+            // find a tab which should be activated within current tabset. otherwise keep tabset without any changes.
+            var tab = that.$scope.find('a[href="#' + CSS.escape('tab-' + window.location.hash.substring(1)) + '"]');
+            if (tab.length) {
+                tab.trigger("click");
+            }
+        });
+
+        if (window.location.hash) {
+            // find a tab which should be activated within current tabset. otherwise keep tabset without any changes.
+            var tab1 = this.$scope.find('a[href="#' + CSS.escape('tab-' + window.location.hash.substring(1)) + '"]');
+            if (tab1.length) {
+                tab1.trigger("click");
+            }
+        }
+    }
+
+    TabSet.init = function init(args) {
+        return args.IsEditorEditing === true
+            ? null
+            : new TabSet(args.scope,
+                         args.StateChangeMessagesTransmitting || []);
+    };
+
+    return TabSet;
+}));

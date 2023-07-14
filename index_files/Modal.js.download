@@ -1,0 +1,103 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager")) :
+    console && console.error('Modal does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager) {
+
+    function Modal(scope, stateChangeMessages, onShowMessagePerformer, onHideMessagePerformer, onShowMessagesTransmitter, onHideMessageTransmitter) {
+        ///<summary>Initialize a new instance of Panel. Subscribe to messages which are passed to current instance.</summary>
+
+        var self = this;
+        //Object.defineProperty(this, "$scope", { enumerable: true, value: $(scope) });
+        Object.defineProperties(this,
+        {
+            $scope: { enumerable: true, value: $(scope) },
+            onShowMessagesTransmitter: {
+                enumerable: true,
+                value: onShowMessagesTransmitter.slice()
+            },
+            onHideMessageTransmitter: {
+                enumerable: true,
+                value: onHideMessageTransmitter.slice()
+            }
+        });
+
+
+        function doShow() {
+            self.show();
+            if (stateChangeMessages.length) {
+                stateChangeMessages.forEach(function (ev) {
+                    eventManager.trigger(ev, "shown");
+                });
+            }
+        }
+
+        function doHide() {
+            self.hide();
+            if (stateChangeMessages.length) {
+                stateChangeMessages.forEach(function (ev) {
+                    eventManager.trigger(ev, "hidden");
+                });
+            }
+        }
+
+        if (onShowMessagePerformer.length) {
+            onShowMessagePerformer.forEach(function (ev) {
+                eventManager.subscribe(ev, doShow);
+            });
+        }
+
+        if (onHideMessagePerformer.length) {
+            onHideMessagePerformer.forEach(function (ev) {
+                eventManager.subscribe(ev, doHide);
+            });
+        }
+
+        //this.$scope.find(".modal-header button.close").on("click", doHide);
+        this.$scope.on('hidden.bs.modal', doHide);
+        this.$scope.on('shown.bs.modal', doShow);
+    }
+
+    Modal.prototype.show =  function show() {
+        this.$scope.modal("show");
+        this.$scope.attr("aria-hidden", "false")
+        this.notifyOnShow();
+    };
+
+    Modal.prototype.notifyOnShow = function () {
+        var self = this;
+        if (this.onShowMessagesTransmitter.length) {
+            this.onShowMessagesTransmitter.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    }
+
+    Modal.prototype.hide =  function hide() {
+        this.$scope.modal("hide");
+        this.$scope.attr("aria-hidden", "true")
+        this.notifyOnHide();
+    };
+
+    Modal.prototype.notifyOnHide = function() {
+        var self = this;
+        if (this.onHideMessageTransmitter.length) {
+            this.onHideMessageTransmitter.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    }
+
+    Modal.init = function init(args) {
+        return args.IsEditorEditing === true ? null : new Modal(
+            args.scope,
+            args.StateChangeMessagesTransmitting || [],
+            args.ShowActionMessages || [],
+            args.HideActionMessages || [],
+            args.ShowMessagesTransmitting || [],
+            args.HideMessagesTransmitting || []
+        );
+    };
+
+    return Modal;
+}));

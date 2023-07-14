@@ -1,0 +1,21 @@
+define(['jquery', 'eventManager', 'matchHeight'], function ($, eventManager, matchHeight) {
+    'use strict';
+    var helpers = {
+        init: function () {
+            helpers.equalHeight();
+        },
+        equalHeight: function () {
+            //Adjust height after all modules have loaded
+            eventManager.subscribe("ModulesLoadedEvent", function () {
+                $('.adi-image-left').matchHeight();
+                $('.adi-home-page .adi-showcase').matchHeight();
+                $('.adi-home-page .adi-standard').matchHeight();
+            });
+        }
+    };
+
+
+    if ( typeof Sitecore != typeof void 0 && typeof Sitecore.PageModes != typeof void 0 && Sitecore.PageModes != null && Sitecore.PageModes.PageEditor != null ) return;
+    setTimeout(helpers.init(), 0);
+
+});

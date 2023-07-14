@@ -1,0 +1,107 @@
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports", "score_ccf/XPerience/Elements", "score_ccf/XPerience/Utils/XPConditionJunction", "promise-polyfill"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    var __syncRequire = typeof module === "object" && typeof module.exports === "object";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var Elements_1 = require("score_ccf/XPerience/Elements");
+    var XPConditionJunction_1 = require("score_ccf/XPerience/Utils/XPConditionJunction");
+    require("promise-polyfill");
+    var XPConditionLoader = /** @class */ (function () {
+        function XPConditionLoader() {
+        }
+        /**
+         * Load condition module and create an instance of it
+         * @param {string} modulePath path to a module which should be dynamicly loaded
+         * @param {XPAttributes} attributes Initial data which will be passed to a loaded module constructor
+         */
+        XPConditionLoader.prototype.getModule = function (modulePath, attributes) {
+            return (__syncRequire ? Promise.resolve().then(function () { return require(modulePath); }) : new Promise(function (resolve_1, reject_1) { require([modulePath], resolve_1, reject_1); })).then(function (condModule) {
+                // create an instance of a named export
+                if (condModule.hasOwnProperty(Elements_1.ElementPairs.conditions[attributes["id"]])) {
+                    return new condModule[Elements_1.ElementPairs.actions[attributes["id"]]](attributes);
+                }
+                // create an instance from default export
+                if ('__esModule' in condModule && condModule.__esModule === !0 && condModule.hasOwnProperty("default")) {
+                    return new condModule.default(attributes);
+                }
+                // outdated version of module
+                if (condModule instanceof Function) {
+                    return new condModule(attributes);
+                }
+                throw new Error("Cannot detect a constructor of the '" + modulePath + "' module.'");
+            }, function (reason) {
+                throw new Error("Cannot load module '" + modulePath + "'. Reason: " + reason);
+            });
+        };
+        /**
+         * Load a list of Action Modules based on xml nodes
+         * @param actionNodes A List of xml nodes which describe an action
+         */
+        XPConditionLoader.prototype.loadConditions = function (component, condEls) {
+            var conditions = [];
+            for (var x = 0; x < condEls.length; x++) {
+                var condNode = condEls[x];
+                switch (condNode.nodeName) {
+                    case '#text':
+                        /* do nothing */
+                        break;
+                    case 'or':
+                        /* Junction is a proxy object which calculates passed internal conditions defer object and resolves itself accordingly */
+                        conditions = conditions.concat(this.doOrOperation(this.loadConditions(component, condNode.childNodes)));
+                        break;
+                    case 'and':
+                        /* Junction is a proxy object which calculates passed internal conditions defer object and resolves itself accordingly */
+                        conditions = conditions.concat(this.doAndOperation(this.loadConditions(component, condNode.childNodes)));
+                        break;
+                    case 'condition':
+                        var condAttr = {};
+                        var nodeAttrs = condNode.attributes;
+                        // create a dynamic object with attributes defined on an XML element
+                        for (var index = 0; index < nodeAttrs.length; index++) {
+                            var attr = nodeAttrs[index];
+                            condAttr[attr.name] = attr.value;
+                        }
+                        // check required 'id' attribute, without it we cannot load a condition
+                        if (!('id' in condAttr) || typeof condAttr.id !== "string") {
+                            throw new Error("Cannot load condition without ID. Condition XML: " + condAttr.outerHTML);
+                        }
+                        // resolve module name based on its id
+                        var moduleName = Elements_1.ElementPairs.conditions[condAttr.id];
+                        if (!moduleName || moduleName.length <= 0) {
+                            throw new Error("Cannot load detect Condition Module Name by ID. Please specity it in 'score_ccf/XPerience/Elements' module. Condition XML: " + condNode.outerHTML);
+                        }
+                        var modulePath = ~moduleName.indexOf('/') ? moduleName : "score_ccf/XPerience/Conditions/" + moduleName;
+                        conditions = conditions.concat(this.getModule(modulePath, condAttr));
+                        break;
+                    default:
+                        throw new Error("Unsupportable condition element: " + condNode.outerHTML);
+                }
+            }
+            return conditions;
+        };
+        /**
+         * Create a proxy object which handles junction of conditions
+         * @param conditions A list of conditions which are going to be joined with "Or" junction
+         */
+        XPConditionLoader.prototype.doOrOperation = function (conditions) {
+            return Promise.resolve(new XPConditionJunction_1.XPConditionOr(conditions));
+        };
+        /**
+         * Create a proxy object which handles junction of conditions
+         * @param conditions A list of conditions which are going to be joined with "And" junction
+         */
+        XPConditionLoader.prototype.doAndOperation = function (conditions) {
+            return Promise.resolve(new XPConditionJunction_1.XPConditionAnd(conditions));
+        };
+        return XPConditionLoader;
+    }());
+    exports.XPConditionLoader = XPConditionLoader;
+});
+//# sourceMappingURL=XPConditionLoader.js.map

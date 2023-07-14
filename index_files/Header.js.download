@@ -1,0 +1,55 @@
+define(['jquery','eventManager'], function ($, eventManager) {
+    'use strict';
+
+    var header = {
+        init: function () {
+            if ( $('.score-header').length ) {
+                header.headerTransition();
+                header.lightMobileHeader();
+            }
+            if ( $('.score-megamenu').length ) {
+                header.dropDowns();
+            }
+        },
+        headerTransition: function () {
+            // Check where header is after modules loaded and page ready
+            // And adjust color
+            eventManager.subscribe("ModulesLoadedEvent", function () {
+                if ( $(window).scrollTop() < 50 ) {
+                    $('header').removeClass('transform');
+                } else {
+                    $('header').addClass('transform');
+                }
+            })
+
+            //transform header on scroll from tranparent to white
+            $(window).on('scroll resize orientationchange', function () {
+                if ( $(window).scrollTop() < 50 ) {
+                    $('header').removeClass('transform');
+                } else {
+                    $('header').addClass('transform');
+                }
+            });
+        },
+        lightMobileHeader: function () {
+            //toggles header bg white when menu is open for mobile at the top of screen
+
+            $('.navbar-collapse').on('show.bs.collapse', function () {
+                $('header').addClass('light');
+            });
+            $('.navbar-collapse').on('hide.bs.collapse', function () {
+                $('header').removeClass('light');
+            });
+        },
+        dropDowns: function () {
+            //prevents dropdown from closing when clicked inside
+
+            $(document).on('click', '.score-megamenu .dropdown-menu', function (e) {
+                e.stopPropagation();
+            });
+        }
+    };
+
+    if ( typeof Sitecore != typeof void 0 && typeof Sitecore.PageModes != typeof void 0 && Sitecore.PageModes != null && Sitecore.PageModes.PageEditor != null ) return;
+    setTimeout(header.init(), 0);
+});

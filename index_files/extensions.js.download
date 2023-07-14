@@ -1,0 +1,61 @@
+/**
+ * @license BrainJocks CCF Extensions
+ * https://brainjocks.atlassian.net/wiki/spaces/SDD/pages/116261662
+ * Copyright 2017
+ */
+
+;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define([], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory() :
+    console && console.error('Extensions does not support non-amd script loading.');
+}(this/* window */, function() {
+    "use strict";
+
+    function allOfType(arr, type) {
+        var assertFunc;
+        if (typeof(type) === "string") {
+            assertFunc = function (value) {
+                return typeof(value) === type;
+            };
+        }
+        else if (typeof(type) === "function") {
+            assertFunc = function (value) {
+                return value instanceof type;
+            };
+        }
+        else {
+            throw new TypeError("type must be of type function or string");
+        }
+
+        return arr.length === 0 || arr.every(assertFunc);
+    }
+
+    function pluck(str, propertyName) {
+        var props = String(propertyName).split(".");
+        return str.map(function (x) {
+            var i;
+
+            for (i = 0; i < props.length; i = i + 1) {
+                x = x[props[i]];
+                if (x === undefined) {
+                    break;
+                }
+            }
+
+            return x;
+        });
+    }
+
+    function supplant(str, obj) {
+        return str.replace(/\{([^{}]*)\}/g, function (a, b) {
+            var r = obj[b];
+            return typeof r === 'string' || typeof r === 'number' ? r : a;
+        });
+    }
+
+    return Object.freeze({
+        supplant:  supplant,
+        pluck:     pluck,
+        allOfType: allOfType
+    });
+}));

@@ -1,0 +1,8 @@
+;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery")) :
+    console && console.error('jquery.noconflict does not support non-amd script loading.');
+}(this/* window */, function($) {
+    "use strict";
+    return $.noConflict();
+}));

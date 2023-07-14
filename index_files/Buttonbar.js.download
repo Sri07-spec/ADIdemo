@@ -1,0 +1,21 @@
+define( ['jquery'], function ($) {
+    "use strict";
+
+    var buttonBar = {
+        init: function () {
+            if ($('.adi-button-bar').length) {
+                buttonBar.addActive();
+            }
+        },
+        addActive: function () {
+            $('.adi-button-bar .score-button').each( function(index, elem){
+                if(window.location.pathname == $(elem).attr('href')) {
+                    $(elem).addClass('active');
+                }
+            });
+        }
+    };
+
+    if ( typeof Sitecore != typeof void 0 && typeof Sitecore.PageModes != typeof void 0 && Sitecore.PageModes != null && Sitecore.PageModes.PageEditor != null ) return;
+    setTimeout(buttonBar.init(), 0);
+});

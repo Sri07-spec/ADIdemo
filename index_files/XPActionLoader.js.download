@@ -1,0 +1,80 @@
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports", "score_ccf/XPerience/Elements", "promise-polyfill"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    var __syncRequire = typeof module === "object" && typeof module.exports === "object";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var Elements_1 = require("score_ccf/XPerience/Elements");
+    require("promise-polyfill");
+    /**
+     * Load XP Action modules from xml desription
+     */
+    var XPActionLoader = /** @class */ (function () {
+        function XPActionLoader() {
+        }
+        /**
+         * Load module and create an instance of it
+         * @param {string} modulePath path to a module which should be dynamicly loaded
+         * @param {XPAttributes} attributes Initial data which will be passed to a loaded module constructor
+         */
+        XPActionLoader.prototype.getModule = function (modulePath, attributes) {
+            // all actions should be inherited from XPActionBase
+            return (__syncRequire ? Promise.resolve().then(function () { return require(modulePath); }) : new Promise(function (resolve_1, reject_1) { require([modulePath], resolve_1, reject_1); })).then(function (actModule) {
+                // create an instance of a named export
+                if (actModule.hasOwnProperty(Elements_1.ElementPairs.actions[attributes["id"]])) {
+                    return new actModule[Elements_1.ElementPairs.actions[attributes["id"]]](attributes);
+                }
+                // create an instance from default export
+                if ('__esModule' in actModule === !0 && actModule.hasOwnProperty("default")) {
+                    return new actModule.default(attributes);
+                }
+                // outdated version of module
+                if (actModule instanceof Function) {
+                    return new actModule(attributes);
+                }
+                throw new Error("Cannot detect a constructor of the '" + modulePath + "' module.'");
+            }, function (reason) {
+                throw new Error("Cannot load module '" + modulePath + "'. Reason: " + reason);
+            });
+        };
+        /**
+         * Load a list of Action Modules based on xml nodes
+         * @param actionNodes A List of xml nodes which describe an action
+         */
+        XPActionLoader.prototype.loadActions = function (actionNodes) {
+            var actions = [];
+            for (var index = 0; index < actionNodes.length; index++) {
+                var actNode = actionNodes[index];
+                var actAttr = {};
+                var nodeAttrs = actNode.attributes;
+                // create a dynamic object with attributes defined on an XML element
+                for (var index_1 = 0; index_1 < nodeAttrs.length; index_1++) {
+                    var attr = nodeAttrs[index_1];
+                    actAttr[attr.name] = attr.value;
+                }
+                // check required 'id' attribute, without it we cannot load an action
+                if (!('id' in actAttr) || typeof actAttr.id !== "string") {
+                    throw new Error("Cannot load action without ID. Action XML: " + actNode.outerHTML);
+                }
+                // resolve module name based on its id
+                var moduleName = Elements_1.ElementPairs.actions[actAttr.id];
+                if (!moduleName || moduleName.length <= 0) {
+                    throw new Error("Cannot load detect Action Module Name by ID. Please specity it in 'score_ccf/XPerience/Elements' module. Action XML: " + actNode.outerHTML);
+                }
+                var modulePath = ~moduleName.indexOf('/') ? moduleName : "score_ccf/XPerience/Actions/" + moduleName;
+                var actionLoader = this.getModule(modulePath, actAttr);
+                actions = actions.concat(actionLoader);
+            }
+            return actions;
+        };
+        return XPActionLoader;
+    }());
+    exports.XPActionLoader = XPActionLoader;
+});
+//# sourceMappingURL=XPActionLoader.js.map

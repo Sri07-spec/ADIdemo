@@ -1,0 +1,27 @@
+;(function(global) {
+
+    global.require = global.require || {};
+
+    // paths
+    global.require.paths = global.require.paths || {};
+    global.require.paths.ADI = "/Areas/ADI/js";
+    global.require.paths.tabCollapse  = global.require.paths.ADI + "/Vendor/bootstrap-tabcollapse";
+    global.require.paths.Buttonbar = global.require.paths.ADI + "/UIComponents/Buttonbar";
+    global.require.paths.Header = global.require.paths.ADI + "/UIComponents/Header";
+    global.require.paths.Modals = global.require.paths.ADI + "/UIComponents/Modals";
+    global.require.paths.Highlights = global.require.paths.ADI + "/UIComponents/Highlights";
+    global.require.paths.Utilities = global.require.paths.ADI + "/Includes/Utilities";
+    global.require.paths.IEBugFixes = global.require.paths.ADI + '/Includes/IEBugFixes';
+    global.require.paths.fontAwesome = global.require.paths.ADI + "/Vendor/all.min";
+    global.require.paths.Adigtm = global.require.paths.ADI + "/UIComponents/Adigtm";
+
+    // shim
+    global.require.shim = global.require.shim || {};
+    global.require.shim.tabCollapse  = { deps: ["jquery"] };
+    global.require.shim.matchHeight  = { deps: ["jquery"] };
+
+    // map
+    global.require.map = global.require.map || {};
+    global.require.map["*"] = global.require.map["*"] || {};
+
+})(this /* window */);

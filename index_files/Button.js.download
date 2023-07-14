@@ -1,0 +1,106 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "eventManager"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("eventManager")) :
+    console && console.error('Button does not support non-amd script loading.');
+}(this/* window */, function ($, eventManager) {
+    function Button(scope, clickMessagesTransmitting, stateChangeMessages, onShowMessagesPerformer, onHideMessagePerformer) {
+        ///<summary>Initialize a new instance of Button. Subscribe to messages which are passed to current instance.</summary>
+
+        var self = this;
+        Object.defineProperties(this, {
+            scope: { enumerable: true, value: scope },
+            $scope: { enumerable: true, value: $(scope) },
+            stateChangeMessages: { enumerable: true, value: stateChangeMessages.slice() }
+        });
+
+        //#region click messages transmitting registration
+        if (clickMessagesTransmitting.length) {
+            this.$scope.on("click", function (e) {
+                e.preventDefault();
+                clickMessagesTransmitting.forEach(function (ev) {
+                    eventManager.trigger(ev, self);
+                });
+
+                return !1;
+            }).on('keyup', function (e) {
+                // catch enter key only
+                if (e.keyCode === 13) {
+                    e.preventDefault();
+                    clickMessagesTransmitting.forEach(function (ev) {
+                        eventManager.trigger(ev, self);
+                    });
+
+                    return !1;
+                }
+            });
+        }
+        //#endregion
+
+        //#region show messages performer
+        if (onShowMessagesPerformer.length) {
+            onShowMessagesPerformer.forEach(function (messageName) {
+                eventManager.subscribe(messageName, self.show, self);
+            });
+
+        }
+        //#endregion
+
+
+        //#region hide mesage performer
+        if (onHideMessagePerformer.length) {
+            onHideMessagePerformer.forEach(function (messageName) {
+                eventManager.subscribe(messageName, self.hide, self);
+            });
+        }
+        //#endregion
+
+        this.$scope.on('focus', this._onFocusHandler.bind(this));
+        this.$scope.on('blur', this._onBlurHandler.bind(this));
+    }
+
+    Button.prototype._onFocusHandler = function(e) {
+        $(this).trigger('focus', [this, e]);
+    }
+
+    Button.prototype._onBlurHandler = function(e) {
+        $(this).trigger('blur', [this, e]);
+    }
+
+    Button.prototype.show = function () {
+        ///<summary>Make panel visible with jQuery.show() method.</summary>
+        this.$scope.show();
+
+        var self = this;
+        if (this.stateChangeMessages.length) {
+            this.stateChangeMessages.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    };
+
+    Button.prototype.hide = function () {
+        ///<summary>Make panel hidden with jQuery.hide() method.</summary>
+        this.$scope.hide();
+
+        var self = this;
+        if (this.stateChangeMessages.length) {
+            this.stateChangeMessages.forEach(function (ev) {
+                eventManager.trigger(ev, self);
+            });
+        }
+    };
+
+    Button.init = function init(args) {
+        if (args.IsEditorEditing) return null;
+
+        var button = new Button(args.scope,
+            args.ClickMessagesTransmitting || [],
+            args.StateChangeMessagesTransmitting || [],
+            args.ShowActionMessages || [],
+            args.HideActionMessages || []);
+
+        return button;
+    };
+
+    return Button;
+}));

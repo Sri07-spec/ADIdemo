@@ -1,0 +1,29 @@
+// Please keep functions in alphabetical order
+;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery"], factory) :
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery")) :
+    console && console.error('jquery.extensions does not support non-amd script loading.');
+}(this/* window */, function($) {
+    "use strict";
+
+    function _copyAttr(to, from, attr) {
+        attr = String(attr);
+        to.attr(attr, from.attr(attr));
+    }
+
+    $.fn.copyAttrFrom = $.fn.copyAttrFrom || function copyAttrFrom(element, attr) {
+        var $el = $(element);
+
+        if (Array.isArray(attr)) {
+            attr.forEach(_copyAttr.bind(null, this, $el));
+        } else {
+            _copyAttr(this, $el, attr);
+        }
+
+        return this;
+    };
+
+    $.fn.descendantOrSelf = $.fn.descendantOrSelf || function descendantOrSelf(sel) {
+        return this.filter(sel).add(this.find(sel));
+    };
+}));

@@ -1,0 +1,117 @@
+/**
+ * @license BrainJocks XperienceRuleLoader
+ * https://brainjocks.atlassian.net/wiki/spaces/SDD/pages/217972958
+ * Copyright 2017
+ */
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports", "score_ccf/XPerience/XPActionLoader", "score_ccf/XPerience/XPConditionLoader", "score_ccf/XPerience/Enums/XPEnums", "promise-polyfill"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var XPActionLoader_1 = require("score_ccf/XPerience/XPActionLoader");
+    var XPConditionLoader_1 = require("score_ccf/XPerience/XPConditionLoader");
+    var XPEnums_1 = require("score_ccf/XPerience/Enums/XPEnums");
+    require("promise-polyfill"); // polyfill
+    /**
+     * Responsible to parse XP Rules and load required conditions and actions.
+     */
+    var XPRuleLoader = /** @class */ (function () {
+        function XPRuleLoader(actionLoader, conditionLoader) {
+            if (actionLoader === void 0) { actionLoader = new XPActionLoader_1.XPActionLoader(); }
+            if (conditionLoader === void 0) { conditionLoader = new XPConditionLoader_1.XPConditionLoader(); }
+            this._actionLoader = actionLoader;
+            this._conditionLoader = conditionLoader;
+        }
+        /**
+         * Apply XP Rule xml to a component
+         * @param {UXModuleLike} component An instance of a UXModule component to scope the rules
+         * @param {string} xml xml structure which defines XP Rule.
+         */
+        XPRuleLoader.prototype.applyRules = function (component, xml) {
+            // TODO: expose hook for custom actions/conditions
+            if (!component.scope || !(component.scope instanceof HTMLElement)) {
+                throw new Error('Components which does not have \'scope\' property are not supported. Please extend your component with scope property.');
+            }
+            // don't do anything if xml rule is not a string or empty
+            if (!xml || typeof xml !== "string" || xml.length <= 0) {
+                return;
+            }
+            // insure component has a marker that indicates XP Rules in loading
+            component.scope.setAttribute('data-xpr-state', XPEnums_1.XPModuleState.InProcess);
+            var rulesDoc = new DOMParser().parseFromString(xml, 'text/xml');
+            if (rulesDoc.querySelector('action, condition') == null) {
+                // no condition or action was found, just skip the whole logic and return
+                component.scope.setAttribute('data-xpr-state', XPEnums_1.XPModuleState.Loaded);
+                return;
+            }
+            var rulesPromises = [];
+            var rules = rulesDoc.querySelectorAll('rule');
+            for (var index = 0; index < rules.length; index++) {
+                var ruleEl = rules[index];
+                // get promises with action module instances
+                var actions = this._actionLoader.loadActions(ruleEl.querySelectorAll('action'));
+                // get promises with condition module instances
+                var conditions = this._conditionLoader.loadConditions(component, ruleEl.querySelector('conditions').childNodes);
+                // set an array with promises 
+                rulesPromises = rulesPromises.concat(this.runRule(conditions, actions, component));
+            }
+            // when all xp rule condition were loaded (modules loaded) mark current component as xp rule loaded.
+            Promise.all(rulesPromises).then(function () {
+                component.scope.setAttribute('data-xpr-state', XPEnums_1.XPModuleState.Loaded);
+            }, function (reason) {
+                // mark component as XP Rules failed.
+                component.scope.setAttribute('data-xpr-state', XPEnums_1.XPModuleState.Failed);
+                throw new Error(reason);
+            });
+        };
+        /**
+         * Run one particular rule. Wait until conditions will be computed and run actions after that.
+         * @param {Promise<XPCondition>[]} conditions An Arrya of conditions which will be attached to a component
+         * @param {Promise<XPAction>[]} actions An Array of actions which can be executed in scope of a component
+         * @param {UXModuleLike} component An instance of a UXModule component to scope the rule
+         */
+        XPRuleLoader.prototype.runRule = function (conditions, actions, component) {
+            var _this = this;
+            if (conditions.length === 0 && actions.length === 0) {
+                // handle case when XP Rule was removed from a component
+                return Promise.resolve();
+            }
+            return Promise.all(conditions).then(function (condModules) {
+                var condsDefs = [];
+                for (var x = 0; x < condModules.length; x++) {
+                    var condModule = condModules[x];
+                    // setup a condition
+                    condModule.setup(component);
+                    // get a condition defer object which indicates is condition computed or not
+                    condsDefs = condsDefs.concat(condModule.defer);
+                }
+                // wait until the conditions computed.
+                Promise.all(condsDefs).then(function (values) {
+                    if (values.every(function (v) { return v === !0; })) {
+                        Promise.all(actions).then(function (actionModules) {
+                            // execute actions
+                            actionModules.forEach(function (actionModule) { actionModule.execute(component); });
+                            // reset conditions to run them more than once per page view
+                            condModules.forEach(function (condModule) { condModule.reset(); });
+                            _this.runRule(conditions, actions, component);
+                        });
+                    }
+                    else {
+                        // reset conditions to run them more than once per page view
+                        condModules.forEach(function (condModule) { condModule.reset(); });
+                        _this.runRule(conditions, actions, component);
+                    }
+                });
+            });
+        };
+        return XPRuleLoader;
+    }());
+    exports.XPRuleLoader = XPRuleLoader;
+});
+//# sourceMappingURL=XPRuleLoader.js.map

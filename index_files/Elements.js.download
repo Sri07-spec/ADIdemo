@@ -1,0 +1,36 @@
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ElementPairs = {
+        conditions: {
+            '{8DB82A68-5F50-43B3-A487-D5B9300DEE80}': 'score_ccf/XPerience/Conditions/OncePerPageViewCondition',
+            '{982886A0-22D5-4371-8E63-D5F0FA292954}': 'score_ccf/XPerience/Conditions/ClickedCondition',
+            '{83C03CA9-68D5-4100-8537-004917B1DEF3}': 'score_ccf/XPerience/Conditions/SlideChangedCondition',
+            '{6EDA1FF1-B3CB-411A-ADAC-6029D1763BCB}': 'score_ccf/XPerience/Conditions/SlideChangingCondition',
+            '{D153496F-BF42-4A47-A9D5-780693D0C2E7}': 'score_ccf/XPerience/Conditions/GetsFocusCondition',
+            '{3FF617C7-4ED5-43FC-A766-4F2414107414}': 'score_ccf/XPerience/Conditions/LosesFocusCondition',
+            '{39EDBFA3-3BC8-4E7D-BC32-4BF2712353AC}': 'score_ccf/XPerience/Conditions/VideoHasPlayedExactNSecondsCondition',
+            '{67E995CD-155D-42CF-9DC8-B7655F9785A5}': 'score_ccf/XPerience/Conditions/VideoHasPlayedNSecondsOrMoreCondition',
+            '{B44C5804-E2F8-4BFA-9060-31108659D475}': 'score_ccf/XPerience/Conditions/VideoIsFinishedCondition',
+            '{7B2C46CA-0B9E-453F-A269-FA2E0079659D}': 'score_ccf/XPerience/Conditions/VideoIsPausedCondition',
+            '{8D46ACE2-32D4-449C-81EF-7C88808F0A14}': 'score_ccf/XPerience/Conditions/VideoStartsToPlayCondition',
+        },
+        actions: {
+            '{70F1F9DC-3930-41EC-9FBB-40B673B15586}': 'score_ccf/XPerience/Actions/CompleteGoalAction',
+            '{7DED5636-8783-431B-A965-31E1A47405E1}': 'score_ccf/XPerience/Actions/TrackClientEventAction',
+            '{C87955F1-3E04-45A3-A235-4BACD1594B42}': 'score_ccf/XPerience/Actions/TrackClientEventAction',
+            '{4D91B017-F733-4E0E-B387-AB0013A71395}': 'score_ccf/XPerience/Actions/TrackClientEventAction',
+            '{8C501C45-D61B-4D10-A9E1-0DEDACCD149F}': 'score_ccf/XPerience/Actions/ShowAlertMessage',
+            '{8C23D183-5F62-4336-A6AD-2876A0D45511}': 'score_ccf/XPerience/Actions/ContactVisitWithTheProfileCard'
+        }
+    };
+});
+//# sourceMappingURL=Elements.js.map

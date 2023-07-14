@@ -1,0 +1,189 @@
+;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", "bootstrap", "bootstrapAmdFix", "jqueryTouchSwipe"], factory) : 
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require("bootstrap"), require("bootstrapAmdFix"), require("jqueryTouchSwipe")) :
+    console && console.error('BootstrapUI does not support non-amd script loading.');
+}(this/* window */, function ($, bt, btAmdFix) {
+    window.BrainJocks = window.BrainJocks || {};
+
+    if (BrainJocks.EE && BrainJocks.EE.Metadata && BrainJocks.EE.Metadata.sitecore &&
+        BrainJocks.EE.Metadata.sitecore().version === "8.0") {
+        // Fix incompatibilities between Bootstrap and the version of prototype.js that
+        // sitecore includes in version 8.0. This is needed for modal and tabs components.
+        function handler(event) {
+            event.target.hide = undefined;
+            setTimeout(function () { delete event.target.hide; }, 0);
+            event.target.show = undefined;
+            setTimeout(function () { delete event.target.show; }, 0);
+        }
+
+        $(window).on("show.bs.modal hide.bs.modal show.bs.tab hide.bs.tab show.bs.dropdown hide.bs.dropdown", handler);
+    }
+
+    BrainJocks.BootstrapUI = {
+        Settings: {
+            causeRepaintsOn: function () {
+                return $("h1, h2, h3, h4, h5, h6, p, li");
+            },
+            hiddenClassList: function() {
+                return ["hidden-xs", "hidden-sm", "hidden-md", "hidden-lg"];
+            }
+        },
+
+        Fonts: {
+            scale: function () {
+                $(window).on("resize", function () {
+                    BrainJocks.BootstrapUI.Settings.causeRepaintsOn().css("z-index", 1);
+                });
+            }
+        },
+
+        Carousel: {
+            init: function() {
+                $('.score-carousel .item:first-of-type').addClass("active");
+
+                $('.score-carousel').swipe({
+                    swipeLeft: function () {
+                        $(this).carousel('next');
+                    },
+                    swipeRight: function () {
+                        $(this).carousel('prev');
+                    }
+                });
+            }                
+        },
+
+        TabSet: {
+            init: function() {
+                $('.score-tab').each(function () {
+                    var tabComponent = $(this);
+
+                    var tabsNav = tabComponent.find('.nav').first();
+                    var tabsContent = tabComponent.find('.tab-content').first();
+
+                    tabsNav.empty();
+
+                    tabsContent.children('.tab-pane').each(function () {
+                        var tabPane = $(this);
+
+                        var tabId = tabPane.prop('id');
+                        var tabTitle = tabPane.data('title');
+                        var anchorable = /^(true|1|yes)$/i.test(tabPane.data('anchorable') || "");
+
+                        var li = '<li class="' + BrainJocks.BootstrapUI.TabSet.getHiddenClasses(this) + '"><a href="#' + tabId + '" data-toggle="tab" data-anchorable="' + anchorable + '">' + tabTitle + '</a></li>';
+
+                        tabsNav.append(li);
+                    });
+                });
+            },
+
+            activate: function () {
+                $('.score-tab').each(function() {
+                    var tabToActivate = $(this).find('.nav li a')[0]; // first
+
+                    if (BrainJocks.BootstrapUI.Utils.isDeepLinked()) {
+                        var anchor = BrainJocks.BootstrapUI.Utils.getAnchor();
+
+                        tabToActivate = $(this).find("a[href='#tab-" + anchor + "']")[0] || tabToActivate;
+                    }
+
+                    $(tabToActivate).tab('show');
+                });
+            },
+
+            getHiddenClasses: function(tabPane) {
+                var classList = tabPane.className;
+                return BrainJocks.BootstrapUI.Settings.hiddenClassList().filter(function (value) {
+                    return new RegExp('(^| )' + value + '( |$)').test(classList);
+                }).join(" ");
+            }
+        },
+
+        Accordion: {
+            init: function() {
+                $('.score-accordion a[data-toggle="collapse"]').each(function () {
+                    var accordion = $(this).closest(".score-accordion")[0];
+                    $(this).attr('data-parent', '#' + accordion.id);
+                });
+            },
+
+            activate: function() {
+                $('.score-accordion').each(function () {
+                    var shouldBeCollapsed = $(this).hasClass("collapsed");
+
+                    var $firstPanel = $(".panel", this).first();
+                    if (BrainJocks.BootstrapUI.Utils.isDeepLinked()) {
+                        var anchor = BrainJocks.BootstrapUI.Utils.getAnchor();
+
+                        $firstPanel = $(this).find(".panel:has(a[href='#collapse-" + anchor + "'])")[0] || $firstPanel;
+                        shouldBeCollapsed = false;
+                    }
+
+                    if (!shouldBeCollapsed) {
+                        $('.panel-collapse', $firstPanel).addClass("in");
+                        $('a[data-toggle="collapse"]', $firstPanel).removeClass("collapsed").attr("aria-expanded", true);
+                    }
+                });
+            }
+        },
+
+        MegaMenu: {
+            init: function() {
+                $(".score-megamenu").find(".btn").addClass("navbar-btn");    
+            }
+        },
+
+        Utils: {
+            isDeepLinked: function() {
+                return document.location.toString().match("#");
+            },
+
+            getAnchor: function() {
+                if (!this.isDeepLinked()) {
+                    return "";
+                }
+
+                return document.location.toString().split('#')[1];
+            }
+        },
+
+        Breadcrumb: {
+            init: function () {
+                $('.score-breadcrumb > .score-breadcrumb-item:first-child .score-folding')
+                    .on('click.score',
+                        function(e) {
+                            e.preventDefault();
+                            var $this = $(this);
+                            $this.closest('.score-breadcrumb').toggleClass('alt-visible');
+
+                            var cssDuration = $this.closest('.score-breadcrumb')
+                                .find(' > .score-breadcrumb-item:first-child .score-breadcrumb-alternate')
+                                .css('transition-duration') || "0s";
+                            var stepDuration = (parseFloat(cssDuration) * (/ms/.test(cssDuration) ? 1 : 1000)).toFixed(0);
+                            var stepCounts = stepDuration / 100;
+                            var stepNumber = 0;
+                            var timer = setInterval(function () {
+                                /* hack to force sitecore to recalculate active component borders. */
+                                $this.closest('.score-breadcrumb').trigger('click');
+                                stepNumber++;
+                                if (stepNumber > stepCounts) clearInterval(timer);
+                            }, 100);
+                        });
+            }
+        },
+
+        init: function () {
+            btAmdFix !== void 0 && typeof btAmdFix.fix === "function" && btAmdFix.fix();
+
+            BrainJocks.BootstrapUI.Fonts.scale();
+            BrainJocks.BootstrapUI.Carousel.init();
+            BrainJocks.BootstrapUI.TabSet.init();
+            BrainJocks.BootstrapUI.TabSet.activate();
+            BrainJocks.BootstrapUI.Accordion.init();
+            BrainJocks.BootstrapUI.Accordion.activate();
+            BrainJocks.BootstrapUI.MegaMenu.init();
+            BrainJocks.BootstrapUI.Breadcrumb.init();
+        }
+    };
+
+    return BrainJocks.BootstrapUI;
+}));

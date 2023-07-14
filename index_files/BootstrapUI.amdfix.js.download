@@ -1,0 +1,60 @@
+﻿;(function (global, factory) {
+    typeof define === 'function' && define.amd ? define(["jquery", 'loglevel', "bootstrap"], factory) : 
+    typeof exports === 'object' && typeof module !== typeof void 0 ? module.exports = factory(require("jquery"), require('loglevel'), require("bootstrap")) :
+    console && console.error('ScoreBootstrapUiAmdFix does not support non-amd script loading.');
+}(this/* window */, function ($, log) {
+
+    function ScoreBootstrapUiAmdFix() {
+
+    }
+
+    ScoreBootstrapUiAmdFix.prototype.fix = function () {
+        // if we use AMD, most likly we already miss $(window).on('load', foo) event which bootstrap uses to fire up init methods for it's own components. So we should run them manually. 
+        if (document.readyState !== "complete") {
+            if (window.define === void 0 || typeof (window.define) !== "function") {
+                log.debug("Score Bootstrap UI AMD fix was loaded not in AMD solution. In all probability you can remove this reference because it is not needed.");
+            }
+            // don't do anything, looks like bootstrap was loaded before window.load event - it means that Bootstrap will do everything correct and manage to init js-components by itself.
+            return;
+        }
+
+        // check version (assume we are working with bootstrap 3 version only
+        if (!($.fn["alert"]
+            && $.fn["alert"].Constructor
+            && +/[\d]+/.exec($.fn["alert"].Constructor.VERSION) === 3)) {
+            return;
+        }
+
+        // affix
+        $('[data-spy="affix"]').each(function() {
+            var $this = $(this);
+            var data = $this.data();
+
+            data.offset = data.offset || {};
+
+            if (data.offsetBottom != null) data.offset.bottom = data.offsetBottom;
+            if (data.offsetTop != null) data.offset.top = data.offsetTop;
+
+            $this.affix(data);
+        });
+
+        // carousel
+        $('[data-ride="carousel"]').each(function() {
+            var $this = $(this);
+            var data = $this.data();
+
+            $this.carousel(data);
+        });
+
+        // scrollspy
+        $('[data-spy="scroll"]').each(function() {
+            var $this = $(this);
+            var data = $this.data();
+
+            $this.scrollspy(data);
+        });
+    }
+
+    return new ScoreBootstrapUiAmdFix();
+
+}));

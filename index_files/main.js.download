@@ -1,0 +1,24 @@
+define([
+        'score_ccf/ModuleLoader',
+        'scorebootstrap',
+        'fontAwesome',
+        'Buttonbar',
+        'Header',
+        'Modals',
+        'Utilities',
+        'IEBugFixes',
+        'Highlights',
+        'Adigtm'
+    ],
+    function (moduleLoader, scorebootstrap, fontAwesome) {
+        'use strict';
+
+        // init SCORE Bootstrap components (Tabsets, Accordeons, Carousels, etc.)
+        scorebootstrap.init();
+
+        moduleLoader.loadPendingModules();
+
+        /**************************************************************************************************************
+         Do not add misc code here, only use main.js to initialize modules, please make new js module.
+         **************************************************************************************************************/
+    });
